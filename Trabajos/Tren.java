@@ -6,11 +6,10 @@ import java.util.concurrent.CountDownLatch;
 
 public class Tren extends Robot implements Runnable {
     private static Lock lock = new ReentrantLock();
-    private CountDownLatch trenesLatch;
-    private static boolean primerTren = true; // Variable para rastrear el primer Tren
-    private static boolean segundoTren = true;
-    private boolean salida = true; // variable para marcar cuando romper el ciclo
-    private int beepersRecolectados = 0; // Numero de beepers recolectados por un robot
+    private CountDownLatch trenesLatch;     // Contador para ejecutar a los siguientes robots en la entrada
+    private static boolean primerTren = true;   // Variable para rastrear el primer Tren
+    private static boolean segundoTren = true;  // Variable para rastrear el segundo Tren
+    private boolean salida = true;  // Variable para marcar cuando romper el ciclo
 
     public Tren(int Street, int Avenue, Direction direction, int beepers, Color color, CountDownLatch trenesLatch) {
         super(Street, Avenue, direction, beepers, color);
@@ -57,6 +56,7 @@ public class Tren extends Robot implements Runnable {
         this.salida = valor;
     }
 
+    // Método de Entrada a la Mina
     public void entrada() {
         lock.lock();
         try {
@@ -71,31 +71,15 @@ public class Tren extends Robot implements Runnable {
         recto();
         giroIzquierda();
         recto(2);
-        // lock.lock();
-        // try {
-        // if (primerTren) {
-        // recto(); // Primer minero va al fondo
-        // // lock.unlock();
-        // } else if (segundoTren) {
-        // recto(5); // Segundo minero va una posición menos
-        // // lock.unlock();
-        // } else {
-        // recto(3);
-        // }
-        // } finally {
-        // primerTren = false; // Marcamos que el primer minero ya ha pasado
-        // segundoTren = false;
-        // lock.unlock();
-        // }
     }
 
+    // Método del Ciclo de ejecución de los Trenes
     public void ciclo() {
-        while (salida) { // cuando su varibale pasa a false desde el controladorTrenes se marca la salida
-                         // de cada tren del ciclo
+        while (salida) { // cuando su variable pasa a false desde el controladorTrenes se marca la salidade cada tren del ciclo
             recto();
             giroIzquierda();
             recto(4); // Semaforo 1 vertical
-            try {
+            try {   // Semáforo de la intersección vertical de la mina
                 // if (Controlador_Semaforos.permitirPasarVerticalSector1()) {
                 // Controlador_Semaforos.semaforo_trenes_vertical_1.acquire();
                 // recto(2); // Avanzar
@@ -110,12 +94,11 @@ public class Tren extends Robot implements Runnable {
             recto();
             giroDerecha();
             recto(4); // Semaforo 2
-            try {
+            try {       // Semáforo para recoger beepers extraídos por Mineros
                 Controlador_Semaforos.semaforo_trenes_2.acquire(); // Conseguir la luz verde del semaforo
                 recto(1); // punto de recoleccion
                 for (int i = 0; i < 50; i++) { // Cuantos beepers recoge, se hace asi por la eficiencia for > while
                     pickBeeper();
-                    // beepersRecolectados++;
                 }
                 giroDerecha();
                 recto(2);
@@ -127,7 +110,7 @@ public class Tren extends Robot implements Runnable {
             recto();
             giroDerecha();
             recto(4); // Semaforo 3
-            try {
+            try {   // Semáforo de la intersección horizontal de la mina
                 // if (Controlador_Semaforos.permitirPasarHorizontalSector3()) {
                 // Controlador_Semaforos.semaforo_trenes_horizontal_3.acquire();
                 // recto(2); // AvanzarF
@@ -142,25 +125,25 @@ public class Tren extends Robot implements Runnable {
             recto();
             giroIzquierda();
             recto(4); // Semaforo 4
-            try {
+            try {       // Semáforo para entregar beepers y que los Extractores se los lleven
                 Controlador_Semaforos.semaforo_trenes_4.acquire();
                 recto();
                 giroDerecha();
                 recto(1);
                 while (anyBeepersInBeeperBag()) { // Entregar todos los beepers que carga en el punto de recoleccion
                     putBeeper();
-                    // beepersRecolectados--;
                 }
                 cambioSentido();
                 recto(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
-                Controlador_Semaforos.semaforo_extractores_4.release(); // Dar la luz verde a los mineros
+                Controlador_Semaforos.semaforo_extractores_4.release(); // Dar la luz verde a los extractores
             }
         }
     }
 
+    // Método para sacarlos de la Mina (tiene errores dado a los bloqueos impuestos por los semáforos)
     public void salida() {
         // turnOff(); // solo matarlos para pruebas
         recto(1);

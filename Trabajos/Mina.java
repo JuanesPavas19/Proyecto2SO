@@ -33,14 +33,15 @@ public class Mina implements Directions {
 
         if (numMineros != 2)
             numMineros = 2;
-
+        
+        // Al tener problemas con la distribución de los trenes, se opta por solucionar el caso base   
         if (numTrenes != 2)
             numTrenes = 2;
-        // if (numTrenes > 6)
-        // numTrenes = 6;
+       
         if (numExtractores != 2)
             numExtractores = 2;
 
+        // Contadores para iniciar los hilos de la clase siguiente (primero salen los Mineros, luego los Trenes y finalmente los Extractores)    
         CountDownLatch minerosLatch = new CountDownLatch(numMineros);
         CountDownLatch trenesLatch = new CountDownLatch(numTrenes);
         CountDownLatch extractoresLatch = new CountDownLatch(numExtractores);
@@ -48,6 +49,7 @@ public class Mina implements Directions {
         // Creamos el controlador de trenes
         Controlador_Trenes controladorTrenes = new Controlador_Trenes();
 
+        // Arreglos de los hilos de cada uno de los objetos
         Thread mineros[] = new Thread[numMineros];
         Thread trenes[] = new Thread[numTrenes];
         Thread extractores[] = new Thread[numExtractores];
@@ -81,7 +83,7 @@ public class Mina implements Directions {
             hilo.start();
         }
 
-        // Esperar a que todos los mineros comiencen a moverse
+        // Esperar a que todos los mineros comiencen a moverse para que empiecen los Trenes
         try {
             minerosLatch.await();
         } catch (InterruptedException e) {
@@ -92,6 +94,7 @@ public class Mina implements Directions {
             hilo.start();
         }
 
+        // Esperar a que todos los Trenes comiencen a moverse para que empiecen los Extractores
         try {
             trenesLatch.await();
         } catch (InterruptedException e) {

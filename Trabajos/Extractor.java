@@ -6,14 +6,14 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.CountDownLatch;
 
 public class Extractor extends Robot implements Runnable {
-    private static Lock lock = new ReentrantLock();
+    private static Lock lock = new ReentrantLock();     // Locks para la entrada de los extractores sin colisionar
     private static Lock lock1 = new ReentrantLock();
-    private static Semaphore semaforo1 = new Semaphore(1);
+    private static Semaphore semaforo1 = new Semaphore(1);  // Semáforos 1 y 2 para el proceso de recolección y almacenamiento
     private static Semaphore semaforo2 = new Semaphore(0);
-    private static Semaphore semaforo3 = new Semaphore(1);
+    private static Semaphore semaforo3 = new Semaphore(1);  // Semáforos 3 y 4 para el proceso de salida de la mina
     private static Semaphore semaforo4 = new Semaphore(0);
-    private CountDownLatch extractoresLatch;
-    private int identificador;
+    private CountDownLatch extractoresLatch;        // Contador para ejecutar a los siguientes robots en la entrada
+    private int identificador;      // Reconocer cual extractor es el que está adentro y cual almacena por fuera
     private static boolean primerExtractor = true; // Variable para rastrear el primer Extractor
     private boolean primerExtractorCompleto = false;
     private static int contador = 0; // Cuantos beepers se han dejado en el punto de extraccion
@@ -67,10 +67,10 @@ public class Extractor extends Robot implements Runnable {
         }
     }
 
+    // Método de Entrada a la Mina
     public void entrada() {
-        lock1.lock();
+        lock1.lock();  
         try {
-            // Cambiate esto
             giroDerecha();
             recto(1);
             giroIzquierda();
@@ -85,22 +85,23 @@ public class Extractor extends Robot implements Runnable {
         lock.lock();
         try {
             if (primerExtractor) {
-                recto(); // Primer extractor va al fondo
+                recto();    // Primer extractor va al fondo
                 giroIzquierda();
-            } // El segundo se queda quieto en la posicion indicada previa al lock
+            }   // El segundo se queda quieto en la posicion indicada previa al lock
         } finally {
-            primerExtractor = false; // Marcamos que el primer extractor ya ha pasado
+            primerExtractor = false; // Marcamos que el primer extractor ya ha pasado para posicionar al segundo
             lock.unlock();
         }
     }
 
-    public void extraccion_mina() { // Habrá manera de optimizar la extracción?
+    // Método de Extracción de los Beepers hacia los silos de almacenamiento
+    public void extraccion_mina() {
         while (true) {
             if (identificador == 1) { // Primer Extractor (Dentro de la mina)
                 if (beepers1 == 12000) { // Cuando haya sacado los 12000 (condicion de parada)
                     break;
                 }
-                try {
+                try {   // Esta sección es para alternar la entrada al punto de extracción con los trenes
                     Controlador_Semaforos.semaforo_extractores_4.acquire();
                     recto(1);
                     cambioSentido();
@@ -111,11 +112,11 @@ public class Extractor extends Robot implements Runnable {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } finally {
-                    Controlador_Semaforos.semaforo_trenes_4.release();
+                    Controlador_Semaforos.semaforo_trenes_4.release();      // Le da entrada a los trenes a ese punto después de recolectar
                 }
                 giroDerecha();
                 recto(4);
-                try {
+                try {   // Semáforo para alternarse con el segundo extractor
                     semaforo1.acquire();
                     recto(1);
                     while (anyBeepersInBeeperBag()) { // Entrega al segundo punto de extracción
@@ -136,7 +137,7 @@ public class Extractor extends Robot implements Runnable {
                 if (beepers2 == 12000) { // Cuando haya sacado los 12000 (condicion de parada)
                     break;
                 }
-                try {
+                try {   // Semáforo para alternar con el primer extractor
                     semaforo2.acquire();
                     recto(1);
                     for (int i = 0; i < 50; i++) { // Recoleccion en el segundo punto de extracción
@@ -144,7 +145,7 @@ public class Extractor extends Robot implements Runnable {
                     }
                     cambioSentido();
                     recto();
-                    if (contador >= 3000) { // Si un almacen se llena
+                    if (contador >= 3000) { // Si un almacen se llena, se tiene que mover a la siguiente columna
                         columnas--;
                         contador = 0;
                     }
@@ -185,7 +186,8 @@ public class Extractor extends Robot implements Runnable {
         }
     }
 
-    public void salida() { // Metodo para sacar a los robots
+    // Metodo para sacar a los robots de la mina
+    public void salida() { 
         if (identificador == 2) { // Debe salir de primero el ultimo
             try {
                 semaforo3.acquire();
@@ -203,7 +205,7 @@ public class Extractor extends Robot implements Runnable {
             giroDerecha();
             recto(6);
             turnOff();
-        } else if (identificador == 1) {
+        } else if (identificador == 1) {    // Sale el primero de los extractores (el que está más adentro de los extractores)
             try {
                 semaforo4.acquire();
                 giroIzquierda();
